@@ -16,5 +16,4 @@ dev_dependencies:
 
 transformers:
 - angular2:
-    entry_points:
-    - example/image_compare_example.dart
+    entry_points: example/image_compare_example.dart
