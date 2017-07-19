@@ -56,7 +56,7 @@ position:absolute;top:50%;height:24px;width: 24px;background-color: black;border
 }
 .switcherView img {
   width:100%;
-  height:calc(100%-30pt);
+  height: calc(100% - 30pt);
   object-fit: contain;
 }
     '''
