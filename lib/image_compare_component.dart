@@ -1,7 +1,6 @@
 // Copyright (c) 2017, Matthew. All rights reserved. Use of this source code
 // is governed by a BSD-style license that can be found in the LICENSE file.
 
-
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:math';
@@ -10,14 +9,15 @@ import 'package:angular2/angular2.dart';
 import 'package:angular2/router.dart';
 import 'package:angular_components/angular_components.dart';
 
-
 @Component(
     selector: 'image-compare',
     providers: const <dynamic>[materialProviders],
-    directives: const <dynamic>[materialDirectives,
-    ROUTER_DIRECTIVES,
+    directives: const <dynamic>[
+      materialDirectives,
+      ROUTER_DIRECTIVES,
     ],
-    styles: const <dynamic>['''
+    styles: const <dynamic>[
+      '''
 .splitter {
     position: absolute;
     top: 0;
@@ -47,23 +47,37 @@ position:absolute;top:50%;height:24px;width: 24px;background-color: black;border
     position:relative;
     overflow:hidden;
 }
-    '''],
+.switcherView {
+  width:100%;
+  height:100%;
+}
+.switcherView img {
+  width:100%;
+  height:100%;
+  object-fit: contain;
+}
+    '''
+    ],
     template: '''
-    <div style="width: 100%; height:100%;" #ruler></div>
-    <div [style.width]="comparisonSplitPosition"
+    <div *ngIf="!splitView" class="switcherView">
+      <img id="firstSwitcherImage" src="{{leftImage}}" *ngIf="leftImageVisible">      
+      <img id="secondSwitcherImage" src="{{rightImage}}" *ngIf="rightImageVisible">      
+    </div>
+    <div *ngIf="splitView" style="width: 100%; height:100%;" #ruler></div>
+    <div *ngIf="splitView" [style.width]="comparisonSplitPosition"
          style="position:absolute;left:0;top:0;overflow: hidden;height:100%">
         <div class="itemContainer" style="left:0;" [style.width]="comparisonWidth">
             <img #leftImage src="" />
         </div>
     </div>
-    <div [style.left]="comparisonSplitPosition"
+    <div *ngIf="splitView" [style.left]="comparisonSplitPosition"
          style="position:absolute;right:0;top:0;overflow: hidden;height:100%">
         <div class="itemContainer" style="right:0;" [style.width]="comparisonWidth">
             <img #rightImage src="" />
         </div>
     </div>
-    <div class="splitter" [style.left]="comparisonSplitPosition"></div>
-    <div class="splitterHandle" 
+    <div *ngIf="splitView" class="splitter" [style.left]="comparisonSplitPosition"></div>
+    <div *ngIf="splitView" class="splitterHandle" 
          [style.left]="comparisonSplitPosition" draggable="true" (drag)="comparisonDrag(\$event)"
          (dragend)="cancelEvent(\$event)">
         <glyph icon="compare_arrows"></glyph>
@@ -72,10 +86,10 @@ position:absolute;top:50%;height:24px;width: 24px;background-color: black;border
 class ImageCompareComponent implements OnInit, OnDestroy {
   bool _leftLoading = false, _rightLoading = false;
 
-  bool get _loading => _leftLoading || _rightLoading;
+  int leftWidth = 0, leftHeight = 0, rightWidth = 0, rightHeight = 0;
 
-  int leftWidth=0, leftHeight=0, rightWidth=0, rightHeight=0;
-
+  bool leftImageVisible = true;
+  bool rightImageVisible = false;
 
   @ViewChild("leftImage")
   ElementRef leftImageElement;
@@ -83,34 +97,24 @@ class ImageCompareComponent implements OnInit, OnDestroy {
   @ViewChild("rightImage")
   ElementRef rightImageElement;
 
-
   @ViewChild("ruler")
   ElementRef ruler;
 
+  bool _animate = true;
 
   @Input()
-  set leftImage(String value) {
-    _leftLoading = true;
-    leftImageElement.nativeElement.src = value;
+  set animate(bool value) {
+    if(!_animate&&value)
+      _lastFrameTime = new DateTime.now();
+    _animate = value;
   }
-
-  String get leftImage => leftImageElement.nativeElement.src;
-
+  bool get animate => _animate;
 
   @Input()
-  set rightImage(String value) {
-    _rightLoading = true;
-    rightImageElement.nativeElement.src = value;
-  }
-
-  String get rightImage => rightImageElement.nativeElement.src;
-
+  bool splitView = false;
 
   @Input()
-  double animationSpeed = 0.01;
-
-  @Input()
-  bool animate = true;
+  double duration = 1.0;
 
   double _comparisonSplitRatio = 0.5;
 
@@ -118,6 +122,10 @@ class ImageCompareComponent implements OnInit, OnDestroy {
   bool _animationDirection = true;
 
   Timer _comparisonTimer;
+
+  StreamSubscription<html.Event> _leftLoaded;
+
+  StreamSubscription<html.Event> _rightLoaded;
 
   String get comparisonHeight {
     return "${comparisonHeightInt}px";
@@ -147,9 +155,8 @@ class ImageCompareComponent implements OnInit, OnDestroy {
   String get firstComparisonWidth => "${leftWidth??0}px";
 
   int get leftComparisonLimit {
-    if (leftWidth== null) return 0;
-    final Point p = fitWithin(
-        new Point(leftWidth, leftHeight),
+    if (leftWidth == null) return 0;
+    final Point p = _fitWithin(new Point(leftWidth, leftHeight),
         new Point(comparisonWidthInt, comparisonHeightInt));
     final double halfWidth = (comparisonWidthInt / 2);
     final double halfImage = (p.x / 2);
@@ -158,10 +165,17 @@ class ImageCompareComponent implements OnInit, OnDestroy {
     return output;
   }
 
+  String get leftImage => leftImageElement.nativeElement.src;
+
+  @Input()
+  set leftImage(String value) {
+    _leftLoading = true;
+    leftImageElement.nativeElement.src = value;
+  }
+
   int get rightComparisonLimit {
     if (rightWidth == null) return 0;
-    final Point p = fitWithin(
-        new Point(rightWidth, rightHeight),
+    final Point p = _fitWithin(new Point(rightWidth, rightHeight),
         new Point(comparisonWidthInt, comparisonHeightInt));
     final double halfWidth = (comparisonWidthInt / 2);
     final double halfImage = (p.x / 2);
@@ -170,38 +184,25 @@ class ImageCompareComponent implements OnInit, OnDestroy {
     return output;
   }
 
+  String get rightImage => rightImageElement.nativeElement.src;
+
+  @Input()
+  set rightImage(String value) {
+    _rightLoading = true;
+    rightImageElement.nativeElement.src = value;
+  }
+
   String get secondComparisonWidth => "${rightWidth??0}px";
 
-  Future<Null> animationCallback(Timer t) async {
-    if (animate) {
-      if (_animationDirection) {
-        //right
-        if (comparisonSplitPositionInt > leftComparisonLimit) {
-          await wait();
-          _comparisonSplitRatio -= animationSpeed;
-        } else {
-          _animationDirection = false;
-        }
-      } else {
-        //left
-        if (comparisonSplitPositionInt < rightComparisonLimit) {
-          await wait();
-          _comparisonSplitRatio += animationSpeed;
-        } else {
-          _animationDirection = true;
-        }
-      }
-    }
-  }
+  bool get _loading => _leftLoading || _rightLoading;
 
   void comparisonDrag(html.MouseEvent event) {
     animate = false;
     event.preventDefault();
     event.stopPropagation();
-    if(event.client.x==0)
-      return;
+    if (event.client.x == 0) return;
     //final int offset =event.movement.x;
-    final html.DivElement rulerDiv =  ruler.nativeElement;
+    final html.DivElement rulerDiv = ruler.nativeElement;
 
     final int offset = event.client.x - rulerDiv.offset.left;
 
@@ -216,26 +217,85 @@ class ImageCompareComponent implements OnInit, OnDestroy {
     _rightLoaded?.cancel();
   }
 
-  StreamSubscription<html.Event> _leftLoaded;
-  StreamSubscription<html.Event> _rightLoaded;
-
   @override
   void ngOnInit() {
-
     _leftLoaded = leftImageElement.nativeElement.onLoad.listen((html.Event e) {
       _leftLoading = false;
       leftWidth = leftImageElement.nativeElement.naturalWidth;
       leftHeight = leftImageElement.nativeElement.naturalHeight;
     });
-    _rightLoaded = rightImageElement.nativeElement.onLoad.listen((html.Event e) {
+    _rightLoaded =
+        rightImageElement.nativeElement.onLoad.listen((html.Event e) {
       _rightLoading = false;
       rightWidth = rightImageElement.nativeElement.naturalWidth;
       rightHeight = rightImageElement.nativeElement.naturalHeight;
     });
 
     new Timer(new Duration(seconds: 1), () {
-      _comparisonTimer =
-      new Timer.periodic(new Duration(milliseconds: 16), animationCallback);
+      _comparisonTimer = new Timer.periodic(
+          new Duration(milliseconds: 16), _animationCallback);
     });
+  }
+
+  DateTime _lastFrameTime;
+
+  Future<Null> _animationCallback(Timer t) async {
+    if (animate) {
+      Duration frameTime = new DateTime.now().difference(_lastFrameTime);
+      if(splitView) {
+        double delta = (frameTime.inMilliseconds/1000) / duration;
+
+        if (_animationDirection) {
+          //right
+          if (comparisonSplitPositionInt > leftComparisonLimit) {
+            await _wait();
+            _comparisonSplitRatio -= delta;
+          } else {
+            _animationDirection = false;
+          }
+        } else {
+          //left
+          if (comparisonSplitPositionInt < rightComparisonLimit) {
+            await _wait();
+            _comparisonSplitRatio += delta;
+          } else {
+            _animationDirection = true;
+          }
+          _lastFrameTime = new DateTime.now();
+        }
+      } else {
+        // Not split view, just simple image change
+        if((frameTime.inMilliseconds/1000)>=duration) {
+          leftImageVisible = !leftImageVisible;
+          rightImageVisible = !rightImageVisible;
+          _lastFrameTime = new DateTime.now();
+        }
+      }
+    }
+  }
+
+  Point _fitWithin(Point inner, Point outer) {
+    final double outerRatio = outer.x / outer.y;
+    final double innerRatio = inner.x / inner.y;
+
+    if (outerRatio < innerRatio) {
+      final num x = outer.x;
+      final num y = inner.y * (outer.x / inner.x);
+      return new Point(x, y);
+    } else if (outerRatio > innerRatio) {
+      final num y = outer.y;
+      final num x = inner.x * (outer.y / inner.y);
+      return new Point(x, y);
+    } else {
+      return new Point(outer.x, outer.y);
+    }
+  }
+
+  Future<Null> _wait({int milliseconds: 100}) {
+    final Completer<Null> completer = new Completer<Null>();
+    new Timer(new Duration(milliseconds: milliseconds), () {
+      completer.complete();
+    });
+    return completer.future;
   }
 }
