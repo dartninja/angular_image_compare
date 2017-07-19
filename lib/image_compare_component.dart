@@ -46,7 +46,6 @@ position:absolute;top:50%;height:24px;width: 24px;background-color: black;border
 }
 :host {
     display:block;
-    border: solid 1px black;
     position:relative;
     overflow:hidden;
 }
@@ -56,7 +55,7 @@ position:absolute;top:50%;height:24px;width: 24px;background-color: black;border
 }
 .switcherView img {
   width:100%;
-  height: calc(100% - 30pt);
+  height:calc(100% - 32pt);
   object-fit: contain;
 }
     '''
@@ -65,9 +64,12 @@ position:absolute;top:50%;height:24px;width: 24px;background-color: black;border
     <div *ngIf="!splitView" class="switcherView">
       <img id="firstSwitcherImage" src="{{leftImage}}" *ngIf="leftImageVisible">      
       <img id="secondSwitcherImage" src="{{rightImage}}" *ngIf="rightImageVisible">    
-      <material-progress [activeProgress]="countdownProgress"></material-progress>
-      <material-button icon><glyph icon="left_arrow"></glyph></material-button>  
-      <material-button icon><glyph icon="left_arrow"></glyph></material-button>  
+      <table style="width: 100%">
+      <tr>
+      <td><material-progress [activeProgress]="countdownProgress"></material-progress></td>
+      <td style="width: 32pt" ><material-button icon (trigger)="toggleImage()"><glyph icon="compare_arrows"></glyph></material-button></td>
+      </tr>
+      </table>
     </div>
     <div style="width: 100%; height:100%;" #ruler></div>
     <div *ngIf="splitView" [style.width]="comparisonSplitPosition"
@@ -92,10 +94,15 @@ position:absolute;top:50%;height:24px;width: 24px;background-color: black;border
 class ImageCompareComponent implements OnInit, OnDestroy {
   bool _leftLoading = false, _rightLoading = false;
 
+  void toggleImage() {
+    leftImageVisible = !leftImageVisible;
+    animate = false;
+  }
+
   int leftWidth = 0, leftHeight = 0, rightWidth = 0, rightHeight = 0;
 
   bool leftImageVisible = true;
-  bool rightImageVisible = false;
+  bool get rightImageVisible => !leftImageVisible;
 
   @ViewChild("leftImage")
   ElementRef leftImageElement;
@@ -137,6 +144,11 @@ class ImageCompareComponent implements OnInit, OnDestroy {
   set animate(bool value) {
     if (!_animate && value) _lastFrameTime = new DateTime.now();
     _animate = value;
+
+    if(leftImageVisible)
+      countdownProgress = 0;
+    else
+      countdownProgress = 100;
   }
 
   String get comparisonHeight {
@@ -286,13 +298,12 @@ class ImageCompareComponent implements OnInit, OnDestroy {
       } else {
         // Not split view, just simple image change
         if(rightImageVisible) {
-          countdownProgress = 100-(delta*100).round();
+          countdownProgress = 100-((delta*20).round()*5);
         } else {
-          countdownProgress = (delta*100).round();
+          countdownProgress = (delta*20).round()*5;
         }
         if ((frameTime.inMilliseconds / 1000) >= duration) {
           leftImageVisible = !leftImageVisible;
-          rightImageVisible = !rightImageVisible;
           _lastFrameTime = new DateTime.now();
         }
       }
