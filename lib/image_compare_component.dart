@@ -62,8 +62,8 @@ position:absolute;top:50%;height:24px;width: 24px;background-color: black;border
     ],
     template: '''
     <div *ngIf="!splitView" class="switcherView">
-      <img id="firstSwitcherImage" src="{{leftImage}}" *ngIf="leftImageVisible">      
-      <img id="secondSwitcherImage" src="{{rightImage}}" *ngIf="rightImageVisible">    
+      <img id="firstSwitcherImage" src="{{leftImage}}" [style.display]="leftImageDisplay">      
+      <img id="secondSwitcherImage" src="{{rightImage}}" [style.display]="rightImageDisplay">    
       <table style="width: 100%">
       <tr>
       <td><material-progress [activeProgress]="countdownProgress"></material-progress></td>
@@ -97,6 +97,19 @@ class ImageCompareComponent implements OnInit, OnDestroy {
   void toggleImage() {
     leftImageVisible = !leftImageVisible;
     animate = false;
+  }
+
+  String get leftImageDisplay {
+    if(leftImageVisible)
+      return "block";
+    else
+      return "none";
+  }
+  String get rightImageDisplay {
+    if(rightImageVisible)
+      return "block";
+    else
+      return "none";
   }
 
   int leftWidth = 0, leftHeight = 0, rightWidth = 0, rightHeight = 0;
