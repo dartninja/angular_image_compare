@@ -5,9 +5,7 @@ import 'dart:async';
 import 'dart:html' as html;
 import 'dart:math';
 
-import 'package:angular2/angular2.dart';
-import 'package:angular2/platform/common.dart';
-import 'package:angular2/router.dart';
+import 'package:angular/angular.dart';
 import 'package:angular_components/angular_components.dart';
 
 @Component(
@@ -16,7 +14,6 @@ import 'package:angular_components/angular_components.dart';
     directives: const <dynamic>[
       COMMON_DIRECTIVES,
       materialDirectives,
-      ROUTER_DIRECTIVES,
       NgClass,
     ],
     styles: const <dynamic>[
