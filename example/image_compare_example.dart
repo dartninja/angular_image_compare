@@ -10,9 +10,7 @@ void main() {
 
 @Component(
     selector: 'custom-component',
-    directives: const <dynamic>[
-      ImageCompareComponent
-    ],
+    directives: const <dynamic>[ImageCompareComponent],
     template: '''
         <image-compare 
             [leftImage]="image1.jpg"
@@ -20,5 +18,4 @@ void main() {
             [animate]="true">
         </image-compare>
         ''')
-class CustomComponent {
-}
+class CustomComponent {}

@@ -97,13 +97,14 @@ class ImageCompareComponent implements OnInit, OnDestroy {
   }
 
   String get leftImageDisplay {
-    if(leftImageVisible)
+    if (leftImageVisible)
       return "block";
     else
       return "none";
   }
+
   String get rightImageDisplay {
-    if(rightImageVisible)
+    if (rightImageVisible)
       return "block";
     else
       return "none";
@@ -155,7 +156,7 @@ class ImageCompareComponent implements OnInit, OnDestroy {
     if (!_animate && value) _lastFrameTime = new DateTime.now();
     _animate = value;
 
-    if(leftImageVisible)
+    if (leftImageVisible)
       countdownProgress = 0;
     else
       countdownProgress = 100;
@@ -204,8 +205,7 @@ class ImageCompareComponent implements OnInit, OnDestroy {
   set leftImage(String value) {
     _leftLoading = true;
     _leftImageSource = value;
-    if(leftImageElement!=null)
-      leftImageElement.nativeElement.src = value;
+    if (leftImageElement != null) leftImageElement.nativeElement.src = value;
   }
 
   int get rightComparisonLimit {
@@ -218,14 +218,14 @@ class ImageCompareComponent implements OnInit, OnDestroy {
     if (output > comparisonWidthInt) return comparisonWidthInt;
     return output;
   }
+
   String get rightImage => _rightImageSource;
 
   @Input()
   set rightImage(String value) {
     _rightLoading = true;
     _rightImageSource = value;
-    if(rightImageElement!=null)
-      rightImageElement.nativeElement.src = value;
+    if (rightImageElement != null) rightImageElement.nativeElement.src = value;
   }
 
   String get secondComparisonWidth => "${rightWidth??0}px";
@@ -269,14 +269,16 @@ class ImageCompareComponent implements OnInit, OnDestroy {
 
   void onLeftImageLoad(html.Event e) {
     _leftLoading = false;
-    leftWidth = e.target.naturalWidth;
-    leftHeight = e.target.naturalHeight;
+    dynamic target = e.target;
+    leftWidth = target.naturalWidth;
+    leftHeight = target.naturalHeight;
   }
 
   void onRightImageLoad(html.Event e) {
     _rightLoading = false;
-    rightWidth = e.target.naturalWidth;
-    rightHeight = e.target.naturalHeight;
+    dynamic target = e.target;
+    rightWidth = target.naturalWidth;
+    rightHeight = target.naturalHeight;
   }
 
   int countdownProgress = 0;
@@ -286,7 +288,6 @@ class ImageCompareComponent implements OnInit, OnDestroy {
       Duration frameTime = new DateTime.now().difference(_lastFrameTime);
       double delta = (frameTime.inMilliseconds / 1000) / duration;
       if (splitView) {
-
         if (_animationDirection) {
           //right
           if (comparisonSplitPositionInt > leftComparisonLimit) {
@@ -307,10 +308,10 @@ class ImageCompareComponent implements OnInit, OnDestroy {
         }
       } else {
         // Not split view, just simple image change
-        if(rightImageVisible) {
-          countdownProgress = 100-((delta*20).round()*5);
+        if (rightImageVisible) {
+          countdownProgress = 100 - ((delta * 20).round() * 5);
         } else {
-          countdownProgress = (delta*20).round()*5;
+          countdownProgress = (delta * 20).round() * 5;
         }
         if ((frameTime.inMilliseconds / 1000) >= duration) {
           leftImageVisible = !leftImageVisible;
